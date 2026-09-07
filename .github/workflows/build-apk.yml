@@ -1,0 +1,94 @@
+name: Build APK
+
+# Runs on every push to main, and can also be triggered manually
+# from the Actions tab in GitHub ("Run workflow" button).
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # The project references app/../debug.keystore for debug builds
+      # but does not ship the keystore file itself. Generate a standard
+      # Android debug keystore so the build doesn't fail on signing.
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      # Optional: create a .env file from a repo secret if you've set
+      # GEMINI_API_KEY under Settings > Secrets and variables > Actions.
+      # If the secret isn't set, the build falls back to .env.example.
+      - name: Create .env file
+        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+        continue-on-error: true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.3.1
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nakon-player-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+  # --- OPTIONAL: signed release build ---
+  # Uncomment this job once you've added these repo secrets
+  # (Settings > Secrets and variables > Actions):
+  #   KEYSTORE_BASE64   - your release keystore file, base64-encoded
+  #   STORE_PASSWORD    - keystore password
+  #   KEY_PASSWORD      - key password
+  #
+  # release:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-java@v4
+  #       with:
+  #         distribution: temurin
+  #         java-version: '17'
+  #     - uses: android-actions/setup-android@v3
+  #     - name: Decode keystore
+  #       run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
+  #     - name: Create .env file
+  #       run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+  #     - uses: gradle/actions/setup-gradle@v4
+  #       with:
+  #         gradle-version: 9.3.1
+  #     - name: Build release APK
+  #       env:
+  #         KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
+  #         STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+  #         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+  #       run: gradle assembleRelease --no-daemon --stacktrace
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: nakon-player-release-apk
+  #         path: app/build/outputs/apk/release/*.apk

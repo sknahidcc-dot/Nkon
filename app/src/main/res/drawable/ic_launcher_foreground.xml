@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Centered within the 66dp safe zone (21 to 87) -->
+    <!-- Red rounded button pill -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,37 C30,33 34,30 39,30 L69,30 C74,30 78,33 78,37 L78,71 C78,75 74,78 69,78 L39,78 C34,78 30,75 30,71 Z" />
+    <!-- Inner play triangle -->
+    <path
+        android:fillColor="#FF0033"
+        android:pathData="M48,44 L66,54 L48,64 Z" />
+</vector>
+
